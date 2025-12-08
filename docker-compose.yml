@@ -1,7 +1,7 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: attractions_mysql
+    container_name: perfume_mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}

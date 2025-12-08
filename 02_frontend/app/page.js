@@ -21,7 +21,7 @@ export default function HomePage() {
   const [isEditing, setIsEditing] = useState(false);
 
   const apiHost = process.env.NEXT_PUBLIC_API_HOST || "http://localhost:3001";
-
+// Testing git update
   // --- READ: Fetch Data ---
   const fetchData = async () => {
     try {
@@ -182,3 +182,5 @@ export default function HomePage() {
     </main>
   );
 }
+
+// Final git fix

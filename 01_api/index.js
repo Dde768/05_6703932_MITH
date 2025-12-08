@@ -4,7 +4,7 @@ const cors = require("cors");
 const path = require("path");
 const dotenv = require("dotenv");
 
-// Load .env.local for local development
+// Load .env.local for local development (ignored in Docker)
 dotenv.config({ path: path.join(__dirname, ".env.local") });
 
 const app = express();
@@ -23,7 +23,7 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-// Health check
+// Health check endpoint
 app.get("/health", async (req, res) => {
   try {
     const [rows] = await pool.query("SELECT 1 AS ok");
@@ -34,53 +34,14 @@ app.get("/health", async (req, res) => {
   }
 });
 
-// READ: Get all products
+// GET /products - list all MITH perfumes
 app.get("/products", async (req, res) => {
   try {
-    const [rows] = await pool.query("SELECT * FROM product ORDER BY id DESC");
+    const [rows] = await pool.query("SELECT * FROM product");
     res.json(rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-
-// CREATE: Add a new product
-app.post("/products", async (req, res) => {
-  try {
-    const { name, collection, scent_family, size_ml, price_thb, description, image_url } = req.body;
-    const sql = `INSERT INTO product (name, collection, scent_family, size_ml, price_thb, description, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-    const [result] = await pool.query(sql, [name, collection, scent_family, size_ml, price_thb, description, image_url]);
-    res.json({ id: result.insertId, ...req.body });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to create product" });
-  }
-});
-
-// UPDATE: Edit an existing product
-app.put("/products/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, collection, scent_family, size_ml, price_thb, description, image_url } = req.body;
-    const sql = `UPDATE product SET name=?, collection=?, scent_family=?, size_ml=?, price_thb=?, description=?, image_url=? WHERE id=?`;
-    await pool.query(sql, [name, collection, scent_family, size_ml, price_thb, description, image_url, id]);
-    res.json({ message: "Product updated successfully" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to update product" });
-  }
-});
-
-// DELETE: Remove a product
-app.delete("/products/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    await pool.query("DELETE FROM product WHERE id=?", [id]);
-    res.json({ message: "Product deleted successfully" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to delete product" });
   }
 });
 

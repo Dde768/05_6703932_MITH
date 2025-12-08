@@ -1,51 +1,97 @@
+// 02_frontend/app/page.js
 "use client";
+
 import { useEffect, useState } from "react";
 
-export default function Page() {
+export default function HomePage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    async function getPerfumes() {
+    const fetchData = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_HOST}/products`);
-        if (!res.ok) throw new Error("Failed to fetch");
+        const apiHost =
+          process.env.NEXT_PUBLIC_API_HOST || "http://localhost:3001";
+
+        const res = await fetch(`${apiHost}/products`, {
+          cache: "no-store",
+        });
+
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+
         const data = await res.json();
         setRows(data);
       } catch (err) {
-        setError(err.message);
+        setError(err.message || "Unknown error");
       } finally {
         setLoading(false);
       }
-    }
-    getPerfumes();
+    };
+
+    fetchData();
   }, []);
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) {
+    return (
+      <main className="container">
+        <div className="empty">Loading MITH perfumes…</div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="container">
+        <div className="empty">Error: {error}</div>
+      </main>
+    );
+  }
 
   return (
-    <main className="p-10 bg-[#050509] text-white min-h-screen">
-      <h1 className="text-3xl font-bold mb-8 text-center">
-        MITH Perfume Collection (Thailand)
-      </h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {rows.map((p) => (
-          <div key={p.id} className="bg-black/50 rounded-xl p-4 shadow-lg">
-            <img
-              src={p.image_url}
-              alt={p.name}
-              className="w-full h-64 object-cover rounded-lg mb-3"
-            />
-            <h2 className="text-xl font-semibold">{p.name}</h2>
-            <p className="text-sm text-gray-400">{p.description}</p>
-            <p className="mt-2 text-sm text-gray-300">
-              Size: {p.size_ml} ml · Price: {p.price_thb} THB
-            </p>
-          </div>
-        ))}
-      </div>
+    <main className="container">
+      <header className="header">
+        <h1 className="title">MITH Perfume Collection (Thailand)</h1>
+      </header>
+
+      {rows.length === 0 ? (
+        <div className="empty">No perfumes found.</div>
+      ) : (
+        <section className="grid" aria-live="polite">
+          {rows.map((p) => (
+            <article key={p.id} className="card" tabIndex={0}>
+              {p.image_url && (
+                <div className="media">
+                  <img
+                    src={p.image_url}
+                    alt={p.name}
+                    className="img"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              )}
+              <div className="body">
+                <h2 className="card-title">{p.name}</h2>
+                <p className="detail">{p.description}</p>
+                <div className="meta">
+                  <small>
+                    Collection: <span className="code">{p.collection}</span> ·
+                    Scent: <span className="code">{p.scent_family}</span>
+                  </small>
+                  <br />
+                  <small>
+                    Size: <span className="code">{p.size_ml} ml</span> · Price:{" "}
+                    <span className="code">
+                      {Number(p.price_thb).toLocaleString()} THB
+                    </span>
+                  </small>
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
     </main>
   );
 }

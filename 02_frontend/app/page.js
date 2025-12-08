@@ -7,7 +7,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // form state
   const [form, setForm] = useState({
     name: "",
     collection: "",
@@ -20,11 +19,10 @@ export default function HomePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
-  const [editId, setEditId] = useState(null); // null = create mode
+  const [editId, setEditId] = useState(null);
 
   const apiHost = process.env.NEXT_PUBLIC_API_HOST || "http://localhost:3001";
 
-  // load products
   const loadProducts = async () => {
     setLoading(true);
     setError("");
@@ -45,13 +43,11 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // generic change handler
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // reset form to create mode
   const resetForm = () => {
     setForm({
       name: "",
@@ -64,15 +60,14 @@ export default function HomePage() {
     });
     setEditId(null);
     setFormError("");
+    setSuccessMsg("");
   };
 
-  // submit create / update
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError("");
     setSuccessMsg("");
 
-    // basic validation
     if (
       !form.name ||
       !form.collection ||
@@ -81,7 +76,7 @@ export default function HomePage() {
       !form.price_thb
     ) {
       setFormError(
-        "Please fill in name, collection, scent family, size (ml) and price (THB)."
+        "Please fill in Name, Collection, Scent, Size (ml) and Price (THB)."
       );
       return;
     }
@@ -118,16 +113,17 @@ export default function HomePage() {
       }
 
       await loadProducts();
-      setSuccessMsg(isEdit ? "Product updated successfully." : "Product created successfully.");
+      setSuccessMsg(
+        isEdit ? "Perfume updated successfully." : "Perfume created successfully."
+      );
       resetForm();
     } catch (err) {
-      setFormError(err.message || "Error while saving product.");
+      setFormError(err.message || "Error while saving perfume.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // when clicking "Edit" on a card
   const handleEditClick = (product) => {
     setEditId(product.id);
     setForm({
@@ -141,15 +137,13 @@ export default function HomePage() {
     });
     setFormError("");
     setSuccessMsg("");
-    // scroll to top where the form is
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
-  // delete a product
   const handleDelete = async (id) => {
-    const ok = window.confirm("Delete this product?");
+    const ok = window.confirm("Delete this perfume?");
     if (!ok) return;
 
     try {
@@ -160,10 +154,9 @@ export default function HomePage() {
         const errBody = await res.json().catch(() => ({}));
         throw new Error(errBody.error || `Delete failed: ${res.status}`);
       }
-      // remove from state without reloading all
       setRows((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
-      alert(err.message || "Error while deleting product.");
+      alert(err.message || "Error while deleting perfume.");
     }
   };
 
@@ -189,110 +182,134 @@ export default function HomePage() {
         <h1 className="title">MITH Perfume Collection (Thailand)</h1>
       </header>
 
-      {/* Create / Edit form */}
-      <section className="card" style={{ marginBottom: "2rem" }}>
-        <h2 className="card-title">
-          {editId === null ? "Add New Perfume" : `Edit Perfume #${editId}`}
-        </h2>
+      {/* FORM CARD */}
+      <section className="card form-card">
+        <div className="form-card-header">
+          <div>
+            <h2 className="card-title">
+              {editId === null ? "Add New Perfume" : `Edit Perfume #${editId}`}
+            </h2>
+            <p className="form-subtitle">
+              Fill in the fragrance details and save to the collection.
+            </p>
+          </div>
+          {editId !== null && (
+            <button type="button" className="btn-secondary" onClick={resetForm}>
+              Cancel edit
+            </button>
+          )}
+        </div>
 
-        <form className="form" onSubmit={handleSubmit}>
-          <div className="form-row">
-            <label>
-              Name
+        <form className="perfume-form" onSubmit={handleSubmit}>
+          <div className="form-grid form-grid-3">
+            <label className="field">
+              <span className="field-label">Name</span>
               <input
+                className="field-input"
                 name="name"
+                placeholder="Heritage Oud"
                 value={form.name}
                 onChange={handleChange}
                 required
               />
             </label>
-            <label>
-              Collection
+
+            <label className="field">
+              <span className="field-label">Collection</span>
               <input
+                className="field-input"
                 name="collection"
+                placeholder="Heritage / Signature"
                 value={form.collection}
                 onChange={handleChange}
                 required
               />
             </label>
-          </div>
 
-          <div className="form-row">
-            <label>
-              Scent Family
+            <label className="field">
+              <span className="field-label">Scent Family</span>
               <input
+                className="field-input"
                 name="scent_family"
+                placeholder="Woody, Gourmand, Fruity…"
                 value={form.scent_family}
                 onChange={handleChange}
                 required
               />
             </label>
-            <label>
-              Size (ml)
+          </div>
+
+          <div className="form-grid form-grid-3">
+            <label className="field">
+              <span className="field-label">Size (ml)</span>
               <input
-                name="size_ml"
+                className="field-input"
                 type="number"
+                name="size_ml"
+                placeholder="50"
                 value={form.size_ml}
                 onChange={handleChange}
                 required
               />
             </label>
-            <label>
-              Price (THB)
+
+            <label className="field">
+              <span className="field-label">Price (THB)</span>
               <input
-                name="price_thb"
+                className="field-input"
                 type="number"
+                name="price_thb"
+                placeholder="4500"
                 value={form.price_thb}
                 onChange={handleChange}
                 required
               />
             </label>
+
+            <label className="field">
+              <span className="field-label">Image URL</span>
+              <input
+                className="field-input"
+                name="image_url"
+                placeholder="https://…"
+                value={form.image_url}
+                onChange={handleChange}
+              />
+            </label>
           </div>
 
-          <label>
-            Image URL
-            <input
-              name="image_url"
-              value={form.image_url}
-              onChange={handleChange}
-            />
-          </label>
-
-          <label>
-            Description
+          <label className="field">
+            <span className="field-label">Description</span>
             <textarea
+              className="field-input field-textarea"
               name="description"
               rows={3}
+              placeholder="Rich oud and woods with subtle sweetness…"
               value={form.description}
               onChange={handleChange}
             />
           </label>
 
-          {formError && <p className="error">{formError}</p>}
-          {successMsg && <p className="success">{successMsg}</p>}
+          {formError && <p className="form-message error">{formError}</p>}
+          {successMsg && <p className="form-message success">{successMsg}</p>}
 
           <div className="form-actions">
-            <button type="submit" disabled={isSubmitting}>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={isSubmitting}
+            >
               {isSubmitting
                 ? "Saving…"
                 : editId === null
                 ? "Create Perfume"
                 : "Update Perfume"}
             </button>
-            {editId !== null && (
-              <button
-                type="button"
-                onClick={resetForm}
-                style={{ marginLeft: "0.75rem" }}
-              >
-                Cancel Edit
-              </button>
-            )}
           </div>
         </form>
       </section>
 
-      {/* List of perfumes */}
+      {/* LIST */}
       {rows.length === 0 ? (
         <div className="empty">No perfumes found.</div>
       ) : (
@@ -327,14 +344,18 @@ export default function HomePage() {
                   </small>
                 </div>
 
-                <div className="form-actions" style={{ marginTop: "0.75rem" }}>
-                  <button type="button" onClick={() => handleEditClick(p)}>
+                <div className="form-actions card-actions">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => handleEditClick(p)}
+                  >
                     Edit
                   </button>
                   <button
                     type="button"
+                    className="btn-danger"
                     onClick={() => handleDelete(p.id)}
-                    style={{ marginLeft: "0.5rem" }}
                   >
                     Delete
                   </button>

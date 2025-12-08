@@ -45,46 +45,6 @@ app.get("/products", async (req, res) => {
   }
 });
 
-// POST /products - Create a new MITH perfume (ADDED)
-app.post("/products", async (req, res) => {
-  const { 
-    name, 
-    collection, 
-    scent_family, 
-    size_ml, 
-    price_thb, 
-    description, 
-    image_url 
-  } = req.body;
-
-  try {
-    const query = `
-      INSERT INTO product 
-      (name, collection, scent_family, size_ml, price_thb, description, image_url) 
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `;
-    
-    const [result] = await pool.query(query, [
-      name, 
-      collection, 
-      scent_family, 
-      size_ml, 
-      price_thb, 
-      description, 
-      image_url || "" // Default to empty string if no URL provided
-    ]);
-
-    // Return the created object so the frontend can update immediately
-    res.status(201).json({ 
-      id: result.insertId, 
-      name, collection, scent_family, size_ml, price_thb, description, image_url 
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to create product. Check server logs." });
-  }
-});
-
 // Start server
 const port = Number(process.env.PORT || process.env.API_PORT || 3001);
 app.listen(port, () => {

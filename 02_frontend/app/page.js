@@ -2,104 +2,96 @@
 
 import { useEffect, useState } from "react";
 
+// Decide which API base URL to use in the browser
+function getApiBase() {
+  if (typeof window !== "undefined") {
+    // Same host as the frontend (e.g. 192.168.56.1) but port 3001
+    return `http://${window.location.hostname}:3001`;
+  }
+  // Fallback (SSR/build – not really used in your case)
+  return process.env.NEXT_PUBLIC_API_HOST || "http://localhost:3001";
+}
+
+const emptyForm = {
+  name: "",
+  collection: "",
+  scent_family: "",
+  size_ml: "",
+  price_thb: "",
+  description: "",
+  image_url: "",
+};
+
 export default function HomePage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  const [form, setForm] = useState({
-    name: "",
-    collection: "",
-    scent_family: "",
-    size_ml: "",
-    price_thb: "",
-    description: "",
-    image_url: "",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
-  const [editId, setEditId] = useState(null);
-
-  const apiHost = process.env.NEXT_PUBLIC_API_HOST || "http://localhost:3001";
-
-  const loadProducts = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch(`${apiHost}/products`, { cache: "no-store" });
-      if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-      const data = await res.json();
-      setRows(data);
-    } catch (err) {
-      setError(err.message || "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Load products
   useEffect(() => {
-    loadProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const fetchData = async () => {
+      try {
+        const apiHost = getApiBase();
+        const res = await fetch(`${apiHost}/products`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+        const data = await res.json();
+        setRows(data);
+      } catch (err) {
+        console.error(err);
+        setError(err.message || "Unknown error");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
+  // Form helpers
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const resetForm = () => {
-    setForm({
-      name: "",
-      collection: "",
-      scent_family: "",
-      size_ml: "",
-      price_thb: "",
-      description: "",
-      image_url: "",
-    });
-    setEditId(null);
-    setFormError("");
-    setSuccessMsg("");
+    setForm(emptyForm);
+    setEditingId(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setFormError("");
-    setSuccessMsg("");
+    setSaving(true);
+    setError("");
 
-    if (
-      !form.name ||
-      !form.collection ||
-      !form.scent_family ||
-      !form.size_ml ||
-      !form.price_thb
-    ) {
-      setFormError(
-        "Please fill in Name, Collection, Scent, Size (ml) and Price (THB)."
-      );
+    const size = Number(form.size_ml);
+    const price = Number(form.price_thb);
+
+    if (!form.name || !form.collection || !form.scent_family) {
+      setError("Name, Collection and Scent Family are required.");
+      setSaving(false);
       return;
     }
-
-    const payload = {
-      ...form,
-      size_ml: Number(form.size_ml),
-      price_thb: Number(form.price_thb),
-    };
-
-    if (Number.isNaN(payload.size_ml) || Number.isNaN(payload.price_thb)) {
-      setFormError("Size (ml) and Price (THB) must be numbers.");
+    if (Number.isNaN(size) || Number.isNaN(price)) {
+      setError("Size (ml) and Price (THB) must be numeric.");
+      setSaving(false);
       return;
     }
 
     try {
-      setIsSubmitting(true);
-
-      const isEdit = editId !== null;
-      const url = isEdit
-        ? `${apiHost}/products/${editId}`
+      const apiHost = getApiBase();
+      const url = editingId
+        ? `${apiHost}/products/${editingId}`
         : `${apiHost}/products`;
-      const method = isEdit ? "PUT" : "POST";
+      const method = editingId ? "PUT" : "POST";
+
+      const payload = {
+        ...form,
+        size_ml: size,
+        price_thb: price,
+      };
 
       const res = await fetch(url, {
         method,
@@ -107,56 +99,68 @@ export default function HomePage() {
         body: JSON.stringify(payload),
       });
 
+      const data = await res.json().catch(() => null);
+
       if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody.error || `Request failed: ${res.status}`);
+        throw new Error(data?.error || `Request failed: ${res.status}`);
       }
 
-      await loadProducts();
-      setSuccessMsg(
-        isEdit ? "Perfume updated successfully." : "Perfume created successfully."
-      );
+      if (editingId) {
+        setRows((prev) => prev.map((p) => (p.id === editingId ? data : p)));
+      } else {
+        setRows((prev) => [...prev, data]);
+      }
+
       resetForm();
     } catch (err) {
-      setFormError(err.message || "Error while saving perfume.");
+      console.error(err);
+      setError(err.message || "Save failed");
     } finally {
-      setIsSubmitting(false);
+      setSaving(false);
     }
   };
 
-  const handleEditClick = (product) => {
-    setEditId(product.id);
+  const handleEdit = (perfume) => {
+    setEditingId(perfume.id);
     setForm({
-      name: product.name || "",
-      collection: product.collection || "",
-      scent_family: product.scent_family || "",
-      size_ml: String(product.size_ml ?? ""),
-      price_thb: String(product.price_thb ?? ""),
-      description: product.description || "",
-      image_url: product.image_url || "",
+      name: perfume.name || "",
+      collection: perfume.collection || "",
+      scent_family: perfume.scent_family || "",
+      size_ml: perfume.size_ml?.toString() || "",
+      price_thb: perfume.price_thb?.toString() || "",
+      description: perfume.description || "",
+      image_url: perfume.image_url || "",
     });
-    setFormError("");
-    setSuccessMsg("");
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
+  const handleCancelEdit = () => {
+    resetForm();
+  };
+
   const handleDelete = async (id) => {
-    const ok = window.confirm("Delete this perfume?");
-    if (!ok) return;
+    if (typeof window !== "undefined") {
+      if (!window.confirm("Delete this perfume?")) return;
+    }
+    setError("");
 
     try {
+      const apiHost = getApiBase();
       const res = await fetch(`${apiHost}/products/${id}`, {
         method: "DELETE",
       });
+
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody.error || `Delete failed: ${res.status}`);
+        throw new Error(data?.error || `Request failed: ${res.status}`);
       }
+
       setRows((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
-      alert(err.message || "Error while deleting perfume.");
+      console.error(err);
+      setError(err.message || "Delete failed");
     }
   };
 
@@ -168,148 +172,139 @@ export default function HomePage() {
     );
   }
 
-  if (error) {
-    return (
-      <main className="container">
-        <div className="empty">Error: {error}</div>
-      </main>
-    );
-  }
-
   return (
     <main className="container">
       <header className="header">
         <h1 className="title">MITH Perfume Collection (Thailand)</h1>
       </header>
 
-      {/* FORM CARD */}
-      <section className="card form-card">
-        <div className="form-card-header">
-          <div>
-            <h2 className="card-title">
-              {editId === null ? "Add New Perfume" : `Edit Perfume #${editId}`}
-            </h2>
-            <p className="form-subtitle">
-              Fill in the fragrance details and save to the collection.
-            </p>
-          </div>
-          {editId !== null && (
-            <button type="button" className="btn-secondary" onClick={resetForm}>
-              Cancel edit
-            </button>
-          )}
-        </div>
+      {/* Create / Edit Form */}
+      <section className="form-wrapper">
+        <form className="form" onSubmit={handleSubmit}>
+          <h2 className="form-title">
+            {editingId ? "Edit Perfume" : "Add New Perfume"}
+          </h2>
+          <p className="form-subtitle">
+            Fill in the fragrance details and save to the collection.
+          </p>
 
-        <form className="perfume-form" onSubmit={handleSubmit}>
-          <div className="form-grid form-grid-3">
-            <label className="field">
-              <span className="field-label">Name</span>
+          <div className="form-grid">
+            <div className="form-field">
+              <label className="label">Name</label>
               <input
-                className="field-input"
+                className="input"
                 name="name"
-                placeholder="Heritage Oud"
                 value={form.name}
                 onChange={handleChange}
+                placeholder="Heritage Oud"
                 required
               />
-            </label>
+            </div>
 
-            <label className="field">
-              <span className="field-label">Collection</span>
+            <div className="form-field">
+              <label className="label">Collection</label>
               <input
-                className="field-input"
+                className="input"
                 name="collection"
-                placeholder="Heritage / Signature"
                 value={form.collection}
                 onChange={handleChange}
+                placeholder="Signature / Heritage"
                 required
               />
-            </label>
+            </div>
 
-            <label className="field">
-              <span className="field-label">Scent Family</span>
+            <div className="form-field">
+              <label className="label">Scent Family</label>
               <input
-                className="field-input"
+                className="input"
                 name="scent_family"
-                placeholder="Woody, Gourmand, Fruity…"
                 value={form.scent_family}
                 onChange={handleChange}
+                placeholder="Woody, Gourmand, Fruity…"
                 required
               />
-            </label>
-          </div>
+            </div>
 
-          <div className="form-grid form-grid-3">
-            <label className="field">
-              <span className="field-label">Size (ml)</span>
+            <div className="form-field">
+              <label className="label">Size (ml)</label>
               <input
-                className="field-input"
+                className="input"
                 type="number"
+                min="1"
                 name="size_ml"
-                placeholder="50"
                 value={form.size_ml}
                 onChange={handleChange}
+                placeholder="50"
                 required
               />
-            </label>
+            </div>
 
-            <label className="field">
-              <span className="field-label">Price (THB)</span>
+            <div className="form-field">
+              <label className="label">Price (THB)</label>
               <input
-                className="field-input"
+                className="input"
                 type="number"
+                min="0"
+                step="1"
                 name="price_thb"
-                placeholder="4500"
                 value={form.price_thb}
                 onChange={handleChange}
+                placeholder="4500"
                 required
               />
-            </label>
+            </div>
 
-            <label className="field">
-              <span className="field-label">Image URL</span>
+            <div className="form-field">
+              <label className="label">Image URL</label>
               <input
-                className="field-input"
+                className="input"
                 name="image_url"
-                placeholder="https://…"
                 value={form.image_url}
                 onChange={handleChange}
+                placeholder="https://mithbangkok.com/…"
               />
-            </label>
+            </div>
           </div>
 
-          <label className="field">
-            <span className="field-label">Description</span>
+          <div className="form-field full">
+            <label className="label">Description</label>
             <textarea
-              className="field-input field-textarea"
+              className="textarea"
               name="description"
-              rows={3}
-              placeholder="Rich oud and woods with subtle sweetness…"
               value={form.description}
               onChange={handleChange}
+              placeholder="Write a short story about this fragrance…"
+              rows={3}
             />
-          </label>
+          </div>
 
-          {formError && <p className="form-message error">{formError}</p>}
-          {successMsg && <p className="form-message success">{successMsg}</p>}
+          {error && <p className="error-msg">{error}</p>}
 
           <div className="form-actions">
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={isSubmitting}
-            >
-              {isSubmitting
-                ? "Saving…"
-                : editId === null
-                ? "Create Perfume"
-                : "Update Perfume"}
+            {editingId && (
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={handleCancelEdit}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+            )}
+            <button type="submit" className="btn primary" disabled={saving}>
+              {saving
+                ? editingId
+                  ? "Saving…"
+                  : "Creating…"
+                : editingId
+                ? "Save Changes"
+                : "Create Perfume"}
             </button>
           </div>
         </form>
       </section>
 
-      {/* LIST */}
+      {/* Card Grid */}
       {rows.length === 0 ? (
         <div className="empty">No perfumes found.</div>
       ) : (
@@ -332,8 +327,9 @@ export default function HomePage() {
                 <p className="detail">{p.description}</p>
                 <div className="meta">
                   <small>
-                    Collection: <span className="code">{p.collection}</span> ·
-                    Scent: <span className="code">{p.scent_family}</span>
+                    Collection:{" "}
+                    <span className="code">{p.collection}</span> · Scent:{" "}
+                    <span className="code">{p.scent_family}</span>
                   </small>
                   <br />
                   <small>
@@ -344,17 +340,17 @@ export default function HomePage() {
                   </small>
                 </div>
 
-                <div className="form-actions card-actions">
+                <div className="card-actions">
                   <button
                     type="button"
-                    className="btn-secondary"
-                    onClick={() => handleEditClick(p)}
+                    className="btn small"
+                    onClick={() => handleEdit(p)}
                   >
                     Edit
                   </button>
                   <button
                     type="button"
-                    className="btn-danger"
+                    className="btn small danger"
                     onClick={() => handleDelete(p.id)}
                   >
                     Delete
@@ -365,158 +361,6 @@ export default function HomePage() {
           ))}
         </section>
       )}
-
-      {/* 🔥 Styles for the form & buttons */}
-      <style jsx global>{`
-        .form-card {
-          margin-bottom: 2.5rem;
-          padding: 1.75rem 2rem;
-          border-radius: 24px;
-          background: radial-gradient(
-            circle at top,
-            #151525 0,
-            #050509 55%,
-            #000 100%
-          );
-          box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-
-        .form-card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-        }
-
-        .form-subtitle {
-          font-size: 0.85rem;
-          color: rgba(255, 255, 255, 0.65);
-        }
-
-        .perfume-form {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        .form-grid {
-          display: grid;
-          gap: 1rem;
-        }
-
-        .form-grid-3 {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-        @media (max-width: 900px) {
-          .form-grid-3 {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        .field {
-          display: flex;
-          flex-direction: column;
-          gap: 0.35rem;
-        }
-
-        .field-label {
-          font-size: 0.8rem;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-          color: rgba(255, 255, 255, 0.6);
-        }
-
-        .field-input {
-          border-radius: 999px;
-          border: 1px solid rgba(255, 255, 255, 0.18);
-          background: rgba(4, 4, 8, 0.85);
-          padding: 0.6rem 0.9rem;
-          color: #fff;
-          font-size: 0.9rem;
-          outline: none;
-          transition: border-color 0.15s ease, box-shadow 0.15s ease,
-            background 0.15s ease;
-        }
-
-        .field-input::placeholder {
-          color: rgba(255, 255, 255, 0.35);
-        }
-
-        .field-input:focus {
-          border-color: #f5d0ff;
-          box-shadow: 0 0 0 1px rgba(245, 208, 255, 0.6);
-          background: rgba(10, 10, 20, 0.95);
-        }
-
-        .field-textarea {
-          border-radius: 18px;
-          resize: vertical;
-          min-height: 80px;
-        }
-
-        .form-actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: 0.75rem;
-          margin-top: 0.5rem;
-        }
-
-        .card-actions {
-          justify-content: flex-start;
-        }
-
-        .btn-primary,
-        .btn-secondary,
-        .btn-danger {
-          border-radius: 999px;
-          padding: 0.55rem 1.3rem;
-          font-size: 0.9rem;
-          border: none;
-          cursor: pointer;
-          font-weight: 600;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-        }
-
-        .btn-primary {
-          background: linear-gradient(135deg, #ff8fd5, #ffd26f);
-          color: #050509;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
-        }
-        .btn-primary:hover {
-          filter: brightness(1.05);
-        }
-
-        .btn-secondary {
-          background: rgba(255, 255, 255, 0.08);
-          color: #f5f5ff;
-        }
-        .btn-secondary:hover {
-          background: rgba(255, 255, 255, 0.16);
-        }
-
-        .btn-danger {
-          background: rgba(255, 88, 120, 0.18);
-          color: #ffb3c5;
-        }
-        .btn-danger:hover {
-          background: rgba(255, 88, 120, 0.32);
-        }
-
-        .form-message {
-          font-size: 0.85rem;
-          margin-top: 0.25rem;
-        }
-        .form-message.error {
-          color: #ff9ea5;
-        }
-        .form-message.success {
-          color: #b5ffcc;
-        }
-      `}</style>
     </main>
   );
 }

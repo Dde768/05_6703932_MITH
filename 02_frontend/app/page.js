@@ -1,4 +1,3 @@
-// 02_frontend/app/page.js
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,13 +12,10 @@ export default function HomePage() {
       try {
         const apiHost =
           process.env.NEXT_PUBLIC_API_HOST || "http://localhost:3001";
-
         const res = await fetch(`${apiHost}/products`, {
           cache: "no-store",
         });
-
         if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-
         const data = await res.json();
         setRows(data);
       } catch (err) {
@@ -52,6 +48,7 @@ export default function HomePage() {
     <main className="container">
       <header className="header">
         <h1 className="title">MITH Perfume Collection (Thailand)</h1>
+       
       </header>
 
       {rows.length === 0 ? (

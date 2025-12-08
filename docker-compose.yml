@@ -15,6 +15,14 @@ services:
       - mysql_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks: [stack]
+    # ---------------------------------------------------
+    # ADDED: Healthcheck to ensure DB is ready before API starts
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+      interval: 5s
+    # ---------------------------------------------------
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
@@ -25,7 +33,12 @@ services:
       UPLOAD_LIMIT: 256M
     ports:
       - "${PHPMYADMIN_PORT:-8888}:80"
-    depends_on: [mysql]
+    # ---------------------------------------------------
+    # UPDATED: Wait for MySQL to be 'healthy' (ready)
+    depends_on:
+      mysql:
+        condition: service_healthy
+    # ---------------------------------------------------
     networks: [stack]
 
   api:
@@ -42,7 +55,12 @@ services:
       TZ: Asia/Bangkok
     ports:
       - "${API_PORT:-3001}:3001"
-    depends_on: [mysql]
+    # ---------------------------------------------------
+    # UPDATED: Wait for MySQL to be 'healthy' (ready)
+    depends_on:
+      mysql:
+        condition: service_healthy
+    # ---------------------------------------------------
     networks: [stack]
 
   frontend:
@@ -64,4 +82,3 @@ volumes:
 networks:
   stack:
     driver: bridge
-

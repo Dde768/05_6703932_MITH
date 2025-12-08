@@ -365,6 +365,158 @@ export default function HomePage() {
           ))}
         </section>
       )}
+
+      {/* 🔥 Styles for the form & buttons */}
+      <style jsx global>{`
+        .form-card {
+          margin-bottom: 2.5rem;
+          padding: 1.75rem 2rem;
+          border-radius: 24px;
+          background: radial-gradient(
+            circle at top,
+            #151525 0,
+            #050509 55%,
+            #000 100%
+          );
+          box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .form-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .form-subtitle {
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.65);
+        }
+
+        .perfume-form {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .form-grid {
+          display: grid;
+          gap: 1rem;
+        }
+
+        .form-grid-3 {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        @media (max-width: 900px) {
+          .form-grid-3 {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .field {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+
+        .field-label {
+          font-size: 0.8rem;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        .field-input {
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          background: rgba(4, 4, 8, 0.85);
+          padding: 0.6rem 0.9rem;
+          color: #fff;
+          font-size: 0.9rem;
+          outline: none;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease,
+            background 0.15s ease;
+        }
+
+        .field-input::placeholder {
+          color: rgba(255, 255, 255, 0.35);
+        }
+
+        .field-input:focus {
+          border-color: #f5d0ff;
+          box-shadow: 0 0 0 1px rgba(245, 208, 255, 0.6);
+          background: rgba(10, 10, 20, 0.95);
+        }
+
+        .field-textarea {
+          border-radius: 18px;
+          resize: vertical;
+          min-height: 80px;
+        }
+
+        .form-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 0.75rem;
+          margin-top: 0.5rem;
+        }
+
+        .card-actions {
+          justify-content: flex-start;
+        }
+
+        .btn-primary,
+        .btn-secondary,
+        .btn-danger {
+          border-radius: 999px;
+          padding: 0.55rem 1.3rem;
+          font-size: 0.9rem;
+          border: none;
+          cursor: pointer;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .btn-primary {
+          background: linear-gradient(135deg, #ff8fd5, #ffd26f);
+          color: #050509;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+        }
+        .btn-primary:hover {
+          filter: brightness(1.05);
+        }
+
+        .btn-secondary {
+          background: rgba(255, 255, 255, 0.08);
+          color: #f5f5ff;
+        }
+        .btn-secondary:hover {
+          background: rgba(255, 255, 255, 0.16);
+        }
+
+        .btn-danger {
+          background: rgba(255, 88, 120, 0.18);
+          color: #ffb3c5;
+        }
+        .btn-danger:hover {
+          background: rgba(255, 88, 120, 0.32);
+        }
+
+        .form-message {
+          font-size: 0.85rem;
+          margin-top: 0.25rem;
+        }
+        .form-message.error {
+          color: #ff9ea5;
+        }
+        .form-message.success {
+          color: #b5ffcc;
+        }
+      `}</style>
     </main>
   );
 }

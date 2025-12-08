@@ -29,16 +29,12 @@ app.get("/health", async (req, res) => {
     const [rows] = await pool.query("SELECT 1 AS ok");
     res.json({ status: "ok", db: rows[0].ok === 1 });
   } catch (err) {
-    console.error(err);
+    console.error("Health check error:", err);
     res.status(500).json({ status: "error", message: err.message });
   }
 });
 
-// ---------------------------------------------------------------------
-// PRODUCTS API (CRUD)
-// ---------------------------------------------------------------------
-
-// GET /products - list all perfumes
+// GET /products - list all MITH perfumes
 app.get("/products", async (req, res) => {
   try {
     const [rows] = await pool.query("SELECT * FROM product ORDER BY id ASC");
@@ -62,14 +58,23 @@ app.post("/products", async (req, res) => {
       image_url,
     } = req.body;
 
-    if (!name || !collection || !scent_family || size_ml == null || price_thb == null) {
+    // Basic validation
+    if (
+      !name ||
+      !collection ||
+      !scent_family ||
+      size_ml == null ||
+      price_thb == null
+    ) {
       return res.status(400).json({
-        error: "name, collection, scent_family, size_ml and price_thb are required.",
+        error:
+          "name, collection, scent_family, size_ml and price_thb are required.",
       });
     }
 
     const size = Number(size_ml);
     const price = Number(price_thb);
+
     if (Number.isNaN(size) || Number.isNaN(price)) {
       return res
         .status(400)
@@ -91,9 +96,10 @@ app.post("/products", async (req, res) => {
       ]
     );
 
-    const [rows] = await pool.query("SELECT * FROM product WHERE id = ?", [
-      result.insertId,
-    ]);
+    const [rows] = await pool.query(
+      "SELECT * FROM product WHERE id = ?",
+      [result.insertId]
+    );
 
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -118,14 +124,22 @@ app.put("/products/:id", async (req, res) => {
       image_url,
     } = req.body;
 
-    if (!name || !collection || !scent_family || size_ml == null || price_thb == null) {
+    if (
+      !name ||
+      !collection ||
+      !scent_family ||
+      size_ml == null ||
+      price_thb == null
+    ) {
       return res.status(400).json({
-        error: "name, collection, scent_family, size_ml and price_thb are required.",
+        error:
+          "name, collection, scent_family, size_ml and price_thb are required.",
       });
     }
 
     const size = Number(size_ml);
     const price = Number(price_thb);
+
     if (Number.isNaN(size) || Number.isNaN(price)) {
       return res
         .status(400)
@@ -153,7 +167,10 @@ app.put("/products/:id", async (req, res) => {
       return res.status(404).json({ error: "Perfume not found." });
     }
 
-    const [rows] = await pool.query("SELECT * FROM product WHERE id = ?", [id]);
+    const [rows] = await pool.query(
+      "SELECT * FROM product WHERE id = ?",
+      [id]
+    );
     res.json(rows[0]);
   } catch (err) {
     console.error("PUT /products/:id error:", err);
@@ -161,26 +178,27 @@ app.put("/products/:id", async (req, res) => {
   }
 });
 
-// DELETE /products/:id - remove perfume
+// DELETE /products/:id - delete perfume
 app.delete("/products/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (!id) return res.status(400).json({ error: "Invalid id." });
 
-    const [result] = await pool.query("DELETE FROM product WHERE id = ?", [id]);
+    const [result] = await pool.query(
+      "DELETE FROM product WHERE id = ?",
+      [id]
+    );
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "Perfume not found." });
     }
 
-    res.status(204).send();
+    res.json({ success: true });
   } catch (err) {
     console.error("DELETE /products/:id error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
-// ---------------------------------------------------------------------
 
 // Start server
 const port = Number(process.env.PORT || process.env.API_PORT || 3001);

@@ -52,14 +52,11 @@ export default function HomePage() {
       const product = await res.json();
 
       if (form.id) {
-        // Update existing
         setRows(rows.map((p) => (p.id === product.id ? product : p)));
       } else {
-        // Add new
         setRows([...rows, product]);
       }
 
-      // Reset form
       setForm({
         id: null,
         name: "",

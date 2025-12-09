@@ -88,8 +88,13 @@ body {
 }
 
 .media {
-  aspect-ratio: 16 / 9;
+  width: 100%;
+  height: 200px; /* Fixed height for uniform cards */
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.3), transparent);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .img {
@@ -98,6 +103,12 @@ body {
   object-fit: cover;
   display: block;
 }
+
+.img {
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
 
 .body {
   padding: 1rem;

@@ -4,7 +4,7 @@ const cors = require("cors");
 const path = require("path");
 const dotenv = require("dotenv");
 
-// Load .env.local for local development (ignored in Docker)
+// Load .env.local for local development
 dotenv.config({ path: path.join(__dirname, ".env.local") });
 
 const app = express();
@@ -34,11 +34,42 @@ app.get("/health", async (req, res) => {
   }
 });
 
-// GET /products - list all MITH perfumes
+// GET /products - list all perfumes
 app.get("/products", async (req, res) => {
   try {
     const [rows] = await pool.query("SELECT * FROM product");
     res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// POST /products - create new perfume
+app.post("/products", async (req, res) => {
+  try {
+    const { name, description, collection, scent_family, size_ml, price_thb, image_url } = req.body;
+
+    if (!name || !price_thb) {
+      return res.status(400).json({ error: "Name and price are required" });
+    }
+
+    const [result] = await pool.query(
+      `INSERT INTO product (name, description, collection, scent_family, size_ml, price_thb, image_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [name, description, collection, scent_family, size_ml, price_thb, image_url]
+    );
+
+    res.status(201).json({
+      id: result.insertId,
+      name,
+      description,
+      collection,
+      scent_family,
+      size_ml,
+      price_thb,
+      image_url,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal Server Error" });

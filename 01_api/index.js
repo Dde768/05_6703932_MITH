@@ -76,6 +76,36 @@ app.post("/products", async (req, res) => {
   }
 });
 
+// PUT /products/:id - update perfume
+app.put("/products/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, collection, scent_family, size_ml, price_thb, image_url } = req.body;
+
+    await pool.query(
+      `UPDATE product SET name=?, description=?, collection=?, scent_family=?, size_ml=?, price_thb=?, image_url=? WHERE id=?`,
+      [name, description, collection, scent_family, size_ml, price_thb, image_url, id]
+    );
+
+    res.json({ id: Number(id), name, description, collection, scent_family, size_ml, price_thb, image_url });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// DELETE /products/:id - remove perfume
+app.delete("/products/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("DELETE FROM product WHERE id=?", [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 // Start server
 const port = Number(process.env.PORT || process.env.API_PORT || 3001);
 app.listen(port, () => {
